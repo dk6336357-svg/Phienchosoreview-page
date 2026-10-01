@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phiên Chợ Số - Nhận Code</title>
+    <title>Phiên Chợ Số Review - Nhận Code</title>
     <style>
         * {
             margin: 0;
@@ -49,6 +49,10 @@
             padding: 18px;
             margin: 15px 0;
             position: relative;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .code-box .label {
             position: absolute;
@@ -71,7 +75,33 @@
         }
         .code-box .code.loading {
             color: #999;
-            font-size: 18px;
+            font-size: 16px;
+        }
+        /* Countdown */
+        .countdown {
+            font-size: 42px;
+            font-weight: 800;
+            color: #d32f2f;
+            font-family: 'Courier New', monospace;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin: 10px 0 15px;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0f3460, #1a4a7a);
+            width: 0%;
+            transition: width 1s linear;
         }
         .instruction {
             background: #fff8e1;
@@ -104,6 +134,10 @@
         .btn-copy.copied {
             background: #2e7d32;
         }
+        .btn-copy:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
         .footer {
             margin-top: 18px;
             font-size: 12px;
@@ -122,6 +156,9 @@
             border-left: 4px solid #d32f2f;
             font-size: 14px;
         }
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -131,22 +168,38 @@
     <h1>Phiên Chợ Số Review</h1>
     <p class="subtitle">Nhận mã xác nhận để lấy xu trong bot</p>
 
-    <div id="content">
+    <!-- Giai đoạn 1: Countdown -->
+    <div id="countdownSection">
+        <div class="code-box">
+            <span class="label">⏳ ĐANG XỬ LÝ</span>
+            <div class="countdown" id="countdownDisplay">5</div>
+        </div>
+        <div class="progress-bar">
+            <div class="fill" id="progressFill"></div>
+        </div>
+        <p style="font-size: 13px; color: #777;">Vui lòng đợi trong giây lát...</p>
+    </div>
+
+    <!-- Giai đoạn 2: Hiện mã -->
+    <div id="codeSection" class="hidden">
         <div class="code-box">
             <span class="label">🔑 MÃ CỦA BẠN</span>
-            <div class="code loading" id="codeDisplay">⏳ Đang tải mã...</div>
+            <div class="code" id="codeDisplay"></div>
         </div>
+
+        <div class="instruction">
+            <strong>📌 Hướng dẫn:</strong><br>
+            1️⃣ Sao chép mã bên trên.<br>
+            2️⃣ Quay lại Discord và nhập lệnh:<br>
+            <code style="background:#e0e0e0; padding:2px 8px; border-radius:4px;">/phienchosoreview &lt;mã&gt;</code><br>
+            3️⃣ Nhận ngay <strong>10 xu</strong> trong bot!
+        </div>
+
+        <button class="btn-copy" id="copyBtn">📋 Sao chép mã</button>
     </div>
 
-    <div class="instruction">
-        <strong>📌 Hướng dẫn:</strong><br>
-        1️⃣ Sao chép mã bên trên.<br>
-        2️⃣ Quay lại Discord và nhập lệnh:<br>
-        <code style="background:#e0e0e0; padding:2px 8px; border-radius:4px;">/phienchosoreview &lt;mã&gt;</code><br>
-        3️⃣ Nhận ngay <strong>10 xu</strong> trong bot!
-    </div>
-
-    <button class="btn-copy" id="copyBtn">📋 Sao chép mã</button>
+    <!-- Giai đoạn 3: Lỗi (nếu không có mã) -->
+    <div id="errorSection" class="hidden"></div>
 
     <div class="footer">
         <p>Mã có hiệu lực trong <strong>10 phút</strong> • 
@@ -161,25 +214,54 @@
     }
 
     const code = getCodeFromURL();
+    const countdownSection = document.getElementById('countdownSection');
+    const codeSection = document.getElementById('codeSection');
+    const errorSection = document.getElementById('errorSection');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const progressFill = document.getElementById('progressFill');
     const codeDisplay = document.getElementById('codeDisplay');
     const copyBtn = document.getElementById('copyBtn');
 
-    if (code) {
-        codeDisplay.textContent = code;
-        codeDisplay.classList.remove('loading');
+    // Nếu không có mã → hiện lỗi luôn
+    if (!code) {
+        countdownSection.classList.add('hidden');
+        codeSection.classList.add('hidden');
+        errorSection.classList.remove('hidden');
+        errorSection.innerHTML = `
+            <div class="error">
+                ⚠️ <strong>Không tìm thấy mã!</strong><br>
+                Vui lòng quay lại Discord và bấm nút "💰 Nhận xu" để tạo link mới.
+            </div>
+        `;
     } else {
-        codeDisplay.textContent = '❌ Không tìm thấy mã';
-        codeDisplay.style.color = '#d32f2f';
-        codeDisplay.classList.remove('loading');
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error';
-        errorDiv.innerHTML = '⚠️ <strong>Không tìm thấy mã!</strong><br>Vui lòng quay lại Discord và bấm nút "💰 Nhận xu" để tạo link mới.';
-        document.getElementById('content').prepend(errorDiv);
+        // Bắt đầu đếm ngược 5 giây
+        let timeLeft = 5;
+        const totalTime = 5;
+        countdownDisplay.textContent = timeLeft;
+
+        const timer = setInterval(() => {
+            timeLeft--;
+            countdownDisplay.textContent = timeLeft > 0 ? timeLeft : "✅";
+            // Cập nhật thanh tiến trình
+            const progress = ((totalTime - timeLeft) / totalTime) * 100;
+            progressFill.style.width = progress + '%';
+
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                // Ẩn countdown, hiện code
+                setTimeout(() => {
+                    countdownSection.classList.add('hidden');
+                    codeSection.classList.remove('hidden');
+                    codeDisplay.textContent = code;
+                }, 300);
+            }
+        }, 1000);
     }
 
+    // Sao chép mã
     copyBtn.addEventListener('click', async function() {
         const textToCopy = codeDisplay.textContent;
-        if (textToCopy.includes('❌') || textToCopy.includes('⏳')) {
+        if (!textToCopy || textToCopy.includes('❌') || textToCopy.includes('⏳')) {
             alert('Không có mã để sao chép! Vui lòng làm mới trang hoặc tạo link mới.');
             return;
         }
